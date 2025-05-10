@@ -147,4 +147,16 @@ OPENAI_MODELS: dict[str, "_ModelDictMeta"] = {
         "price_input": 0.4,
         "price_output": 0.4,
     },
+    "gpt-4.1": {
+        "context": 1_047_576,
+        "price_input": 2.00,
+        "price_output": 8.00,
+        "knowledge_cutoff": datetime(2025, 4, 1),
+    },
+    "gpt-4.1-mini": {
+        "context": 1_047_576,
+        "price_input": 0.40,
+        "price_output": 1.60,
+        "knowledge_cutoff": datetime(2025, 4, 1),
+    },
 }

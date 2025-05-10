@@ -259,6 +259,10 @@ def log_warn_once(msg: str):
 
 
 def get_model(model: str) -> ModelMeta:
+    # Strip ":online" suffix if present
+    if model.endswith(":online"):
+        model = model[:-7]
+
     # if only provider is given, get recommended model
     if model in PROVIDERS:
         provider = cast(Provider, model)
