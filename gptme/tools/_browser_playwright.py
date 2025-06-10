@@ -93,6 +93,51 @@ def search_duckduckgo(query: str) -> str:
     return browser.execute(_search_duckduckgo, query)
 
 
+def _search_searxng(browser: Browser, query: str) -> str:
+    import requests
+    import urllib.parse
+
+    query_enc = urllib.parse.quote(query)
+    url = f"http://10.0.0.12:8082/search?q={query_enc}&format=json"
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+    except Exception as e:
+        return f"Error: could not fetch SearxNG results ({e})"
+
+    data = resp.json()
+    hits = []
+    # Prefer to show answers/instant answers at the top
+    # SearxNG might use 'answers' or something similar; fallback to web results
+    # (Adjust key lookup if needed for your searxng json)
+
+    # 1. Add instant answers if present
+    for a in data.get("answers", []):
+        # a might have fields: 'title', 'answer', 'url', or similar
+        # SearxNG answer JSON is not strictly standardized, so try common cases
+        title = a.get("title") or "Instant Answer"
+        desc = a.get("answer") or a.get("content") or a.get("text") or ""
+        url = a.get("url") or ""
+        hits.append(SearchResult(title, url, desc))
+
+    # 2. Add regular search results
+    for r in data.get("results", []):
+        title = r.get("title") or ""
+        url = r.get("url") or ""
+        desc = r.get("content") or r.get("snippet") or r.get("description") or ""
+        hits.append(SearchResult(title, url, desc))
+
+    if not hits:
+        return "Error: no (JSON) search results found from SearxNG."
+
+    return titleurl_to_list(hits)
+
+
+def search_searxng(query: str) -> str:
+    browser = get_browser()
+    return browser.execute(_search_searxng, query)
+
+
 @dataclass
 class Element:
     type: str
