@@ -8,14 +8,17 @@ import tempfile
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
+import json
+from pathlib import Path
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright, Browser, ElementHandle
 
-from playwright.sync_api import Browser, ElementHandle
+COOKIE_FILE = Path(__file__).parent.parent.parent / "scripts" / "google_cookies.json"
 
 from ._browser_thread import BrowserThread
 
 _browser: BrowserThread | None = None
 logger = logging.getLogger(__name__)
-
 
 def get_browser() -> BrowserThread:
     global _browser
@@ -24,120 +27,44 @@ def get_browser() -> BrowserThread:
         atexit.register(_browser.stop)
     return _browser
 
-
-def _load_page(browser: Browser, url: str) -> str:
-    """Load a page and return its body HTML"""
-    context = browser.new_context(
-        locale="en-US",
-        geolocation={"latitude": 37.773972, "longitude": 13.39},
-        permissions=["geolocation"],
-    )
-
-    logger.info(f"Loading page: {url}")
-    page = context.new_page()
-    page.goto(url)
-
-    return page.inner_html("body")
-
-
 def read_url(url: str) -> str:
     """Read the text of a webpage and return the text in Markdown format."""
     browser = get_browser()
     body_html = browser.execute(_load_page, url)
     return html_to_markdown(body_html)
 
-
-def _search_google(browser: Browser, query: str) -> str:
-    query = urllib.parse.quote(query)
-    url = f"https://www.google.com/search?q={query}&hl=en"
-
-    context = browser.new_context(
-        locale="en-US",
-        geolocation={"latitude": 37.773972, "longitude": 13.39},
-        permissions=["geolocation"],
-    )
-    page = context.new_page()
-    page.goto(url)
-
-    els = _list_clickable_elements(page)
-    for el in els:
-        if "Accept all" in el.text:
-            el.element.click()
-            logger.debug("Accepted Google terms")
-            break
-
-    return _list_results_google(page)
-
-
 def search_google(query: str) -> str:
-    browser = get_browser()
-    return browser.execute(_search_google, query)
-
-
-def _search_duckduckgo(browser: Browser, query: str) -> str:
-    url = f"https://duckduckgo.com/?q={query}"
-
-    context = browser.new_context(
-        locale="en-US",
-        geolocation={"latitude": 37.773972, "longitude": 13.39},
-        permissions=["geolocation"],
-    )
-    page = context.new_page()
-    page.goto(url)
-
-    return _list_results_duckduckgo(page)
-
-
+    raise NotImplementedError("Google search disabled temporarily.")
 def search_duckduckgo(query: str) -> str:
-    browser = get_browser()
-    return browser.execute(_search_duckduckgo, query)
+    raise NotImplementedError("DuckDuckGo search disabled temporarily.")
+def search_searxng(query: str) -> list[dict]:
+    from playwright.sync_api import sync_playwright
+    from urllib.parse import quote_plus
+    from bs4 import BeautifulSoup
 
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context()
+        page = context.new_page()
+        base_url = f"http://10.0.0.12:8082/search?q={quote_plus(query)}"
+        page.goto(base_url)
+        page.wait_for_selector("div#urls article.result")
+        content = page.content()
+        browser.close()
 
-def _search_searxng(browser: Browser, query: str) -> str:
-    import requests
-    import urllib.parse
-
-    query_enc = urllib.parse.quote(query)
-    url = f"http://10.0.0.12:8082/search?q={query_enc}&format=json"
-    try:
-        resp = requests.get(url, timeout=10)
-        resp.raise_for_status()
-    except Exception as e:
-        return f"Error: could not fetch SearxNG results ({e})"
-
-    data = resp.json()
-    hits = []
-    # Prefer to show answers/instant answers at the top
-    # SearxNG might use 'answers' or something similar; fallback to web results
-    # (Adjust key lookup if needed for your searxng json)
-
-    # 1. Add instant answers if present
-    for a in data.get("answers", []):
-        # a might have fields: 'title', 'answer', 'url', or similar
-        # SearxNG answer JSON is not strictly standardized, so try common cases
-        title = a.get("title") or "Instant Answer"
-        desc = a.get("answer") or a.get("content") or a.get("text") or ""
-        url = a.get("url") or ""
-        hits.append(SearchResult(title, url, desc))
-
-    # 2. Add regular search results
-    for r in data.get("results", []):
-        title = r.get("title") or ""
-        url = r.get("url") or ""
-        desc = r.get("content") or r.get("snippet") or r.get("description") or ""
-        hits.append(SearchResult(title, url, desc))
-
-    if not hits:
-        return "Error: no (JSON) search results found from SearxNG."
-
-    return titleurl_to_list(hits)
-
-
-def search_searxng(query: str) -> str:
-    browser = get_browser()
-    return browser.execute(_search_searxng, query)
-
-
+    soup = BeautifulSoup(content, "html.parser")
+    results = []
+    for article in soup.select("div#urls article.result"):
+        title_tag = article.select_one("h3 a")
+        link_tag = article.select_one("a.url_header")
+        snippet_tag = article.select_one("p.content")
+        if title_tag and link_tag:
+            results.append({
+                "title": title_tag.get_text(strip=True),
+                "url": link_tag["href"],
+                "snippet": snippet_tag.get_text(strip=True) if snippet_tag else "",
+            })
+    return results
 @dataclass
 class Element:
     type: str
@@ -155,34 +82,14 @@ class Element:
             name=element.evaluate("el => el.name"),
             href=element.evaluate("el => el.href"),
             element=element,
-            # FIXME: is this correct?
             selector=element.evaluate("el => el.selector"),
         )
-
-
-def _list_clickable_elements(page, selector=None) -> list[Element]:
-    elements = []
-
-    # filter by selector
-    if selector:
-        selector = f"{selector} button, {selector} a"
-    else:
-        selector = "button, a"
-
-    # List all clickable buttons
-    clickable = page.query_selector_all(selector)
-    for el in clickable:
-        elements.append(Element.from_element(el))
-
-    return elements
-
 
 @dataclass
 class SearchResult:
     title: str
     url: str
     description: str | None = None
-
 
 def titleurl_to_list(results: list[SearchResult]) -> str:
     s = ""
@@ -192,83 +99,14 @@ def titleurl_to_list(results: list[SearchResult]) -> str:
             s += f"\n   {r.description}"
     return s.strip()
 
-
-def _list_results_google(page) -> str:
-    # fetch the results (elements with .g class)
-    results = page.query_selector_all(".g")
-    if not results:
-        logger.error("No search results found")
-        logger.debug(f"{page.inner_text('body')=}")
-        return "Error: something went wrong with the search."
-
-    # list results
-    hits = []
-    for result in results:
-        url = result.query_selector("a").evaluate("el => el.href")
-        h3 = result.query_selector("h3")
-        if h3:
-            title = h3.inner_text()
-            # desc has data-sncf attribute
-            desc_el = result.query_selector("[data-sncf]")
-            desc = (desc_el.inner_text().strip().split("\n")[0]) if desc_el else ""
-            hits.append(SearchResult(title, url, desc))
-    return titleurl_to_list(hits)
-
-
-def _list_results_duckduckgo(page) -> str:
-    # fetch the results
-    results = page.query_selector(".react-results--main")
-    if not results:
-        logger.error("Unable to find selector `.react-results--main` in results")
-        logger.debug(f"{page.inner_text('body')=}")
-        return "Error: something went wrong with the search."
-    results = results.query_selector_all("article")
-    if not results:
-        logger.error("Unable to find selector `article` in results")
-        logger.debug(f"{page.inner_text('body')=}")
-        return "Error: something went wrong with the search."
-
-    # list results
-    hits = []
-    for result in results:
-        url = result.query_selector("a").evaluate("el => el.href")
-        h2 = result.query_selector("h2")
-        if h2:
-            title = h2.inner_text()
-            desc = result.query_selector("span").inner_text().strip().split("\n")[0]
-            hits.append(SearchResult(title, url, desc))
-    return titleurl_to_list(hits)
-
-
-def _take_screenshot(
-    browser: Browser, url: str, path: Path | str | None = None
-) -> Path:
-    """Take a screenshot of a webpage and save it to a file."""
-    if path is None:
-        path = tempfile.mktemp(suffix=".png")
-    else:
-        # create the directory if it doesn't exist
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    context = browser.new_context()
-    page = context.new_page()
-    page.goto(url)
-    page.screenshot(path=path)
-
-    return Path(path)
-
-
 def screenshot_url(url: str, path: Path | str | None = None) -> Path:
-    """Take a screenshot of a webpage and save it to a file."""
     logger.info(f"Taking screenshot of '{url}' and saving to '{path}'")
     browser = get_browser()
     path = browser.execute(_take_screenshot, url, path)
     print(f"Screenshot saved to {path}")
     return path
 
-
 def html_to_markdown(html):
-    # check that pandoc is installed
     if not shutil.which("pandoc"):
         raise Exception("Pandoc is not installed. Needed for browsing.")
 
@@ -283,28 +121,15 @@ def html_to_markdown(html):
     if p.returncode != 0:
         raise Exception(f"Pandoc returned error code {p.returncode}: {stderr.decode()}")
 
-    # Post-process the output to remove :::
     markdown = stdout.decode()
     markdown = "\n".join(
         line for line in markdown.split("\n") if not line.strip().startswith(":::")
     )
-
-    # Post-process the output to remove div tags
     markdown = markdown.replace("<div>", "").replace("</div>", "")
-
-    # replace [\n]{3,} with \n\n
     markdown = re.sub(r"[\n]{3,}", "\n\n", markdown)
-
-    # replace {...} with ''
     markdown = re.sub(r"\{(#|style|target|\.)[^}]*\}", "", markdown)
 
-    # strip inline images, like: data:image/png;base64,...
     re_strip_data = re.compile(r"!\[[^\]]*\]\(data:image[^)]*\)")
-
-    # test cases
-    assert re_strip_data.sub("", "![test](data:image/png;base64,123)") == ""
-    assert re_strip_data.sub("", "![test](data:image/png;base64,123) test") == " test"
-
     markdown = re_strip_data.sub("", markdown)
 
     return markdown
