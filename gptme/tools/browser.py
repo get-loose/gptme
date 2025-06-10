@@ -54,17 +54,14 @@ browser: Literal["playwright", "lynx"] | None = (
     "playwright" if has_playwright() else ("lynx" if has_lynx() else None)
 )
 
-# noreorder
 if browser == "playwright":
-    from ._browser_playwright import read_url as read_url_playwright  # fmt: skip
+    from ._browser_playwright import read_url as read_url_playwright
     from ._browser_playwright import (
-        screenshot_url as screenshot_url_playwright,  # fmt: skip
+        screenshot_url as screenshot_url_playwright,
     )
-    from ._browser_playwright import search_duckduckgo, search_google  # fmt: skip
+    from ._browser_playwright import search_searxng
 elif browser == "lynx":
-    from ._browser_lynx import read_url as read_url_lynx  # fmt: skip
-    from ._browser_lynx import search as search_lynx  # fmt: skip
-
+    from ._browser_lynx import read_url as read_url_lynx
 logger = logging.getLogger(__name__)
 
 EngineType = Literal["google", "duckduckgo"]
@@ -127,35 +124,25 @@ def read_url(url: str) -> str:
     """Read a webpage in a text format."""
     assert browser
     if browser == "playwright":
-        return read_url_playwright(url)  # type: ignore
+        return read_url_playwright(url)
     elif browser == "lynx":
-        return read_url_lynx(url)  # type: ignore
+        return read_url_lynx(url)
 
 
-def search(query: str, engine: EngineType = "google") -> str:
+def search(query: str) -> str:
     """Search for a query on a search engine."""
-    logger.info(f"Searching for '{query}' on {engine}")
-    if browser == "playwright":
-        return search_playwright(query, engine)
-    elif browser == "lynx":
-        return search_lynx(query, engine)  # type: ignore
-    raise ValueError(f"Unknown search engine: {engine}")
+    logger.info(f"Searching for '{query}'")
+    return search_playwright(query)
 
 
-def search_playwright(query: str, engine: EngineType = "google") -> str:
+def search_playwright(query: str) -> str:
     """Search for a query on a search engine using Playwright."""
-    if engine == "google":
-        return search_google(query)  # type: ignore
-    elif engine == "duckduckgo":
-        return search_duckduckgo(query)  # type: ignore
-    raise ValueError(f"Unknown search engine: {engine}")
-
-
+    return search_searxng(query)
 def screenshot_url(url: str, path: Path | str | None = None) -> Path:
     """Take a screenshot of a webpage."""
     assert browser
     if browser == "playwright":
-        return screenshot_url_playwright(url, path)  # type: ignore
+        return screenshot_url_playwright(url, path)
     raise ValueError("Screenshot not supported with lynx backend")
 
 
