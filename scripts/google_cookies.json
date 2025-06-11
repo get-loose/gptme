@@ -1,0 +1,82 @@
+[
+  {
+    "name": "_GRECAPTCHA",
+    "value": "09ANMylNCTi66yfJ6lXkuO9SeX6IHtiEx5Xdg6H56_RrYqFVlAMRLleUkR2qgmnr0qkfIOIxxSzdivcfZGuKQUTvI",
+    "domain": "www.google.com",
+    "path": "/recaptcha",
+    "expires": 1765138023.02184,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "AEC",
+    "value": "AVh_V2jx_70yGYr2T-_LMcnvoeIY1EIonHpTaFfjix1WKF--UaJf_kQs8mY",
+    "domain": ".google.com",
+    "path": "/",
+    "expires": 1765138019.338447,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "GOOGLE_ABUSE_EXEMPTION",
+    "value": "ID=92e399d7e5a53cd2:TM=1749586019:C=R:IP=212.233.32.164-:S=CIxzy7IEcSqqEUwxm55YK28",
+    "domain": ".google.com",
+    "path": "/",
+    "expires": 1749596820.023685,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "SOCS",
+    "value": "CAISHAgCEhJnd3NfMjAyNTA2MDUtMF9SQzIaAm5sIAEaBgiA653CBg",
+    "domain": ".google.com",
+    "path": "/",
+    "expires": 1783714035.981937,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "DV",
+    "value": "43UDIVsbT14XUN_AlAKmBhdIaUO3dRk",
+    "domain": "www.google.com",
+    "path": "/",
+    "expires": 1749586636,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "NID",
+    "value": "524=EmDHHHqP6QbO-iiMARm2n6ZOnpcEUyzMln0oL0KaJAUdx_Xdm2S0zzrtYtzNiznNkWgslXMSakaFvgzMKHLaUQYcsIetSyIzeuM17vxXkFyij3KHXyBMIP77PDS0qBdUjmX_SzIouj52Sb4b-IZyf-TO9ASbkx8MMCrG_zIx92hwGAKaFYXUzIlyoNHNpf9bLf5Y12Rw4HPZaKEfXkzTYADcJNUvSNnEjYXUHjvtg1qayDQVX241snRH8bGsADaOAySqnki6O1yTubHytUzZbjNYCAujiOfHwt37ckMNKCWt2UCHooWigw8lFAHX0gvXl3m_vrJXwMQ8wO4c-79sZbwAgdTZyWsubycp",
+    "domain": ".google.com",
+    "path": "/",
+    "expires": 1765397235.867554,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "__Host-GAPS",
+    "value": "1:Pun7qO5UMaQESECxqKrJva5A9iU_AA:mOzilqYXYQmm5D9C",
+    "domain": "accounts.google.com",
+    "path": "/",
+    "expires": 1784146049.452528,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "OTZ",
+    "value": "8121368_48_52_123900_48_436380",
+    "domain": "accounts.google.com",
+    "path": "/",
+    "expires": 1752178050,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]

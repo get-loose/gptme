@@ -1,17 +1,12 @@
 import atexit
 import logging
-import os
 import re
 import shutil
 import subprocess
-import tempfile
-import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
-import json
-from pathlib import Path
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, Browser, ElementHandle
+from playwright.sync_api import sync_playwright, ElementHandle
 
 COOKIE_FILE = Path(__file__).parent.parent.parent / "scripts" / "google_cookies.json"
 
@@ -20,6 +15,7 @@ from ._browser_thread import BrowserThread
 _browser: BrowserThread | None = None
 logger = logging.getLogger(__name__)
 
+
 def get_browser() -> BrowserThread:
     global _browser
     if _browser is None:
@@ -27,20 +23,24 @@ def get_browser() -> BrowserThread:
         atexit.register(_browser.stop)
     return _browser
 
+
 def read_url(url: str) -> str:
     """Read the text of a webpage and return the text in Markdown format."""
     browser = get_browser()
     body_html = browser.execute(_load_page, url)
     return html_to_markdown(body_html)
 
+
 def search_google(query: str) -> str:
     raise NotImplementedError("Google search disabled temporarily.")
+
+
 def search_duckduckgo(query: str) -> str:
     raise NotImplementedError("DuckDuckGo search disabled temporarily.")
+
+
 def search_searxng(query: str) -> list[dict]:
-    from playwright.sync_api import sync_playwright
     from urllib.parse import quote_plus
-    from bs4 import BeautifulSoup
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -59,12 +59,16 @@ def search_searxng(query: str) -> list[dict]:
         link_tag = article.select_one("a.url_header")
         snippet_tag = article.select_one("p.content")
         if title_tag and link_tag:
-            results.append({
-                "title": title_tag.get_text(strip=True),
-                "url": link_tag["href"],
-                "snippet": snippet_tag.get_text(strip=True) if snippet_tag else "",
-            })
+            results.append(
+                {
+                    "title": title_tag.get_text(strip=True),
+                    "url": link_tag["href"],
+                    "snippet": snippet_tag.get_text(strip=True) if snippet_tag else "",
+                }
+            )
     return results
+
+
 @dataclass
 class Element:
     type: str
@@ -85,11 +89,13 @@ class Element:
             selector=element.evaluate("el => el.selector"),
         )
 
+
 @dataclass
 class SearchResult:
     title: str
     url: str
     description: str | None = None
+
 
 def titleurl_to_list(results: list[SearchResult]) -> str:
     s = ""
@@ -99,12 +105,14 @@ def titleurl_to_list(results: list[SearchResult]) -> str:
             s += f"\n   {r.description}"
     return s.strip()
 
+
 def screenshot_url(url: str, path: Path | str | None = None) -> Path:
     logger.info(f"Taking screenshot of '{url}' and saving to '{path}'")
     browser = get_browser()
     path = browser.execute(_take_screenshot, url, path)
     print(f"Screenshot saved to {path}")
     return path
+
 
 def html_to_markdown(html):
     if not shutil.which("pandoc"):

@@ -138,6 +138,8 @@ def search(query: str) -> str:
 def search_playwright(query: str) -> str:
     """Search for a query on a search engine using Playwright."""
     return search_searxng(query)
+
+
 def screenshot_url(url: str, path: Path | str | None = None) -> Path:
     """Take a screenshot of a webpage."""
     assert browser
